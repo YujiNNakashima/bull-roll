@@ -14,7 +14,6 @@ export default new Worker(
   'messageQueue',
   async (job) => {
     console.log('Received message:', job.data.text);
-
     try {
       const queryText = 'INSERT INTO messages(text) VALUES($1)';
       await pool.query(queryText, [job.data.text]);

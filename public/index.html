@@ -79,9 +79,16 @@
   </head>
   <body>
     <section>
-      <h1>Message Dashboard</h1>
+      <h1>アプリアプリ</h1>
       <form hx-post="/api/send-message" hx-target="#response">
-        <input name="message" type="text" id="messageInput" required />
+        <input
+          name="message"
+          type="text"
+          id="messageInput"
+          required
+          onfocus="this.value=''"
+          autocomplete="off"
+        />
         <div>
           <button type="submit">Send Message</button>
           <button type="button" hx-delete="/api/messages">
@@ -95,12 +102,24 @@
   </body>
   <script src="https://unpkg.com/htmx.org@1.9.10"></script>
   <script>
+    function resetInput() {
+      console.log("reset");
+      document.getElementById("messageInput").value = "";
+    }
+
     const evtSource = new EventSource("/api/events");
     evtSource.onmessage = function (event) {
       const messages = JSON.parse(event.data);
       const messagesContainer = document.getElementById("messages");
       messagesContainer.innerHTML = messages
-        .map((msg) => `<li>${msg.text}</li>`)
+        .map(
+          (msg) => `
+          <div style="font-size: 12px;">${new Date(
+            msg.created_at
+          ).getSeconds()}:${new Date(msg.created_at).getMilliseconds()}</div>
+          <li>${msg.text}</li>
+        `
+        )
         .join("");
     };
   </script>

@@ -15,26 +15,6 @@ app.use(express.json());
 const router = express.Router();
 app.use("/api", router)
 
-
-router.post('/send-message', async (req, res) => {
-  try {
-    const { message } = req.body;
-    console.log(req.body);
-
-    if (!message) {
-      return res.status(400).send('Message is required');
-    }
-
-    await addMessage(message);
-
-    res.end();
-  } catch (error) {
-    console.error('Error sending message:', error);
-    res.status(500).send('Error sending message');
-  }
-})
-
-
 // SSE endpoint
 router.get('/events', function (req, res) {
   res.setHeader('Content-Type', 'text/event-stream');
@@ -53,8 +33,7 @@ router.get('/events', function (req, res) {
       }
       sendEvent(result.rows);
     });
-  };
-
+  };  
   fetchAndSendMessages();
 
   const pollInterval = setInterval(fetchAndSendMessages, 2000);
@@ -68,6 +47,24 @@ router.get('/events', function (req, res) {
     clearInterval(keepAlive);
   });
 });
+
+router.post('/send-message', async (req, res) => {
+  try {
+    const { message } = req.body;
+    console.log(req.body);
+
+    if (!message) {
+      return res.status(400).send('Message is required');
+    }
+
+    await addMessage(message);
+
+    res.end();
+  } catch (error) {
+    console.error('Error sending message:', error);
+    res.status(500).send('Error sending message');
+  }
+})
 
 router.get('/messages', async (req, res) => {
   try {
@@ -107,27 +104,27 @@ router.delete('/messages', async (req, res) => {
   }
 })
 
-if (process.env.NODE_ENV === 'development') {
-  router.post('/seed', async (req, res) => {
-    try {
-      await pool.query(`
+// if (process.env.NODE_ENV === 'development') {
+router.post('/seed', async (req, res) => {
+  try {
+    await pool.query(`
       CREATE TABLE IF NOT EXISTS messages (
         id SERIAL PRIMARY KEY,
         text VARCHAR(255) NOT NULL,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       )
     `);
-      await pool.query(`
+    await pool.query(`
       INSERT INTO messages (text) VALUES ('Hello, world!'), ('Another message')
     `);
-      res.send('Database seeded successfully.');
-    } catch (error) {
-      console.error('Database seeding failed:', error);
-      res.status(500).send('Database seeding failed.');
-    }
-  });
+    res.send('Database seeded successfully.');
+  } catch (error) {
+    console.error('Database seeding failed:', error);
+    res.status(500).send('Database seeding failed.');
+  }
+});
 
-}
+// }
 
 // start worker
 worker
