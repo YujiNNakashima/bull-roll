@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Message Dashboard</title>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const ws = new WebSocket("ws://localhost:3000");
+        ws.onmessage = function (event) {
+          console.log(event);
+          const messages = document.getElementById("messages");
+          messages.innerHTML += `<p>${event.data}</p>`;
+        };
+
+        document
+          .getElementById("sendBtn")
+          .addEventListener("click", function () {
+            const message = document.getElementById("messageInput").value;
+            ws.send(message);
+          });
+      });
+    </script>
+  </head>
+  <body>
+    <input type="text" id="messageInput" />
+    <button id="sendBtn">Send Message</button>
+    <div id="messages"></div>
+  </body>
+</html>
