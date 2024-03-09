@@ -33,7 +33,7 @@ router.get('/events', function (req, res) {
       }
       sendEvent(result.rows);
     });
-  };  
+  };
   fetchAndSendMessages();
 
   const pollInterval = setInterval(fetchAndSendMessages, 2000);
@@ -104,29 +104,30 @@ router.delete('/messages', async (req, res) => {
   }
 })
 
-// if (process.env.NODE_ENV === 'development') {
-router.post('/seed', async (req, res) => {
-  try {
-    await pool.query(`
+if (process.env.NODE_ENV === 'development') {
+  router.post('/seed', async (req, res) => {
+    try {
+      await pool.query(`
       CREATE TABLE IF NOT EXISTS messages (
         id SERIAL PRIMARY KEY,
         text VARCHAR(255) NOT NULL,
+        worker_id VARCHAR(255),
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       )
     `);
-    await pool.query(`
+      await pool.query(`
       INSERT INTO messages (text) VALUES ('Hello, world!'), ('Another message')
     `);
-    res.send('Database seeded successfully.');
-  } catch (error) {
-    console.error('Database seeding failed:', error);
-    res.status(500).send('Database seeding failed.');
-  }
-});
+      res.send('Database seeded successfully.');
+    } catch (error) {
+      console.error('Database seeding failed:', error);
+      res.status(500).send('Database seeding failed.');
+    }
+  });
 
-// }
+}
 
-// start worker
+// start workers
 worker
 
 server.listen(3000, () => console.log('Server running on http://localhost:3000'));

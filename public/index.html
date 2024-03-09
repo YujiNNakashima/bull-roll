@@ -116,7 +116,7 @@
           (msg) => `
           <div style="font-size: 12px;">${new Date(
             msg.created_at
-          ).getSeconds()}:${new Date(msg.created_at).getMilliseconds()}</div>
+          ).getSeconds()}:${new Date(msg.created_at).getMilliseconds()} - processed by ${msg.worker_id}</div>
           <li>${msg.text}</li>
         `
         )
