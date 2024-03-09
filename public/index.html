@@ -3,27 +3,31 @@
   <head>
     <meta charset="UTF-8" />
     <title>Message Dashboard</title>
-    <script>
-      document.addEventListener("DOMContentLoaded", function () {
-        const ws = new WebSocket("ws://localhost:3000");
-        ws.onmessage = function (event) {
-          console.log(event);
-          const messages = document.getElementById("messages");
-          messages.innerHTML += `<p>${event.data}</p>`;
-        };
-
-        document
-          .getElementById("sendBtn")
-          .addEventListener("click", function () {
-            const message = document.getElementById("messageInput").value;
-            ws.send(message);
-          });
-      });
-    </script>
   </head>
   <body>
-    <input type="text" id="messageInput" />
-    <button id="sendBtn">Send Message</button>
-    <div id="messages"></div>
+    <section>
+      <form hx-post="/api/send-message" hx-target="#response">
+        <input name="message" type="text" id="messageInput" required />
+        <button type="submit">Send Message</button>
+      </form>
+      <div id="response" style="display: none"></div>
+
+      <div
+        id="messages"
+        hx-get="/api/messages"
+        hx-trigger="every 2s"
+        hx-swap="outerHTML"
+      ></div>
+    </section>
   </body>
+  <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+  <script>
+    // document.addEventListener("DOMContentLoaded", function () {
+    //   const ws = new WebSocket("ws://localhost:3000");
+    //   document.getElementById("sendBtn").addEventListener("click", function () {
+    //     const message = document.getElementById("messageInput").value;
+    //     ws.send(message);
+    //   });
+    // });
+  </script>
 </html>

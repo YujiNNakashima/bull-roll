@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-implicit-any */
 import express from 'express';
 import { createServer } from 'http';
 import { Server as WebSocketServer } from 'ws';
@@ -9,26 +10,56 @@ const app = express();
 const server = createServer(app);
 const wss = new WebSocketServer({ server });
 
+app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 app.use(express.json());
 
-wss.on('connection', (ws) => {
-  ws.on('message', (message) => {
-    addMessage(message.toString());
-  });
-});
+const api = express.Router();
+app.use("/api", api)
 
-const baseRouter = express.Router();
-app.use("/api", baseRouter)
 
-baseRouter.get('/messages', async (req, res) => {
+api.post('/send-message', async (req, res) => {
+  try {
+    const { message } = req.body;
+    console.log(req.body);
+
+    if (!message) {
+      return res.status(400).send('Message is required');
+    }
+
+    await addMessage(message);
+
+    res.end();
+  } catch (error) {
+    console.error('Error sending message:', error);
+    res.status(500).send('Error sending message');
+  }
+})
+
+
+api.get('/messages', async (req, res) => {
   try {
     const data = await pool.query(`
       SELECT * FROM messages;
     `)
-    res.status(200).json({
-      data: data.rows
-    })
+
+
+    if (data.rows.length > 0) {
+      const messages = data.rows.map((row: any) => {
+        return `<li>${row.text}</li>`;
+      });
+      const messagesHtml = messages.join('');
+      const htmlResponse = `<ul>${messagesHtml}</ul>`;
+
+      res.send(htmlResponse);
+
+    } else {
+
+      res.send(`<li>
+      não há mensagem
+      </li>`)
+    }
+
   } catch (error) {
     res.status(500).json({
       error
@@ -37,7 +68,7 @@ baseRouter.get('/messages', async (req, res) => {
 })
 
 if (process.env.NODE_ENV === 'development') {
-  baseRouter.post('/seed', async (req, res) => {
+  api.post('/seed', async (req, res) => {
     try {
       await pool.query(`
       CREATE TABLE IF NOT EXISTS messages (
@@ -55,6 +86,7 @@ if (process.env.NODE_ENV === 'development') {
       res.status(500).send('Database seeding failed.');
     }
   });
+  
 }
 
 // start worker
