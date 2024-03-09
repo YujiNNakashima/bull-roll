@@ -1,24 +1,22 @@
 /* eslint-disable @typescript-eslint/no-implicit-any */
 import express from 'express';
 import { createServer } from 'http';
-import { Server as WebSocketServer } from 'ws';
 import { addMessage } from './producer';
 import worker from './consumer'
 import pool from './db';
 
 const app = express();
 const server = createServer(app);
-const wss = new WebSocketServer({ server });
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 app.use(express.json());
 
-const api = express.Router();
-app.use("/api", api)
+const router = express.Router();
+app.use("/api", router)
 
 
-api.post('/send-message', async (req, res) => {
+router.post('/send-message', async (req, res) => {
   try {
     const { message } = req.body;
     console.log(req.body);
@@ -37,7 +35,41 @@ api.post('/send-message', async (req, res) => {
 })
 
 
-api.get('/messages', async (req, res) => {
+// SSE endpoint
+router.get('/events', function (req, res) {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+
+  const sendEvent = (data: any) => {
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  };
+
+  const fetchAndSendMessages = () => {
+    pool.query('SELECT * FROM messages ORDER BY created_at ASC', (error: any, result: any) => {
+      if (error) {
+        console.error('Error fetching messages:', error);
+        return;
+      }
+      sendEvent(result.rows);
+    });
+  };
+
+  fetchAndSendMessages();
+
+  const pollInterval = setInterval(fetchAndSendMessages, 2000);
+
+  const keepAlive = setInterval(() => {
+    res.write(': keep-alive\n\n');
+  }, 20000);
+
+  req.on('close', () => {
+    clearInterval(pollInterval);
+    clearInterval(keepAlive);
+  });
+});
+
+router.get('/messages', async (req, res) => {
   try {
     const data = await pool.query(`
       SELECT * FROM messages;
@@ -52,9 +84,7 @@ api.get('/messages', async (req, res) => {
       const htmlResponse = `<ul>${messagesHtml}</ul>`;
 
       res.send(htmlResponse);
-
     } else {
-
       res.send(`<li>
       não há mensagem
       </li>`)
@@ -67,8 +97,18 @@ api.get('/messages', async (req, res) => {
   }
 })
 
+router.delete('/messages', async (req, res) => {
+  try {
+    await pool.query('DELETE FROM messages');
+    res.status(200).send('All messages deleted successfully.');
+  } catch (error) {
+    console.error('Error deleting messages:', error);
+    res.status(500).send('Failed to delete messages.');
+  }
+})
+
 if (process.env.NODE_ENV === 'development') {
-  api.post('/seed', async (req, res) => {
+  router.post('/seed', async (req, res) => {
     try {
       await pool.query(`
       CREATE TABLE IF NOT EXISTS messages (
@@ -86,7 +126,7 @@ if (process.env.NODE_ENV === 'development') {
       res.status(500).send('Database seeding failed.');
     }
   });
-  
+
 }
 
 // start worker
