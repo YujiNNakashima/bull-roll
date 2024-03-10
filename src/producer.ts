@@ -13,5 +13,6 @@ const queue = new Queue('messageQueue', {
 
 export async function addMessage(message: string) {
   console.log('in addMessage')
-  await queue.add('messageJob', { text: message });
+  await queue.add('messageJob', { text: message },
+    { removeOnComplete: true, removeOnFail: true });
 }

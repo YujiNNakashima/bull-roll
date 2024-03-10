@@ -15,26 +15,6 @@ app.use(express.json());
 const router = express.Router();
 app.use("/api", router)
 
-
-router.post('/send-message', async (req, res) => {
-  try {
-    const { message } = req.body;
-    console.log(req.body);
-
-    if (!message) {
-      return res.status(400).send('Message is required');
-    }
-
-    await addMessage(message);
-
-    res.end();
-  } catch (error) {
-    console.error('Error sending message:', error);
-    res.status(500).send('Error sending message');
-  }
-})
-
-
 // SSE endpoint
 router.get('/events', function (req, res) {
   res.setHeader('Content-Type', 'text/event-stream');
@@ -54,7 +34,6 @@ router.get('/events', function (req, res) {
       sendEvent(result.rows);
     });
   };
-
   fetchAndSendMessages();
 
   const pollInterval = setInterval(fetchAndSendMessages, 2000);
@@ -68,6 +47,24 @@ router.get('/events', function (req, res) {
     clearInterval(keepAlive);
   });
 });
+
+router.post('/send-message', async (req, res) => {
+  try {
+    const { message } = req.body;
+    console.log(req.body);
+
+    if (!message) {
+      return res.status(400).send('Message is required');
+    }
+
+    await addMessage(message);
+
+    res.end();
+  } catch (error) {
+    console.error('Error sending message:', error);
+    res.status(500).send('Error sending message');
+  }
+})
 
 router.get('/messages', async (req, res) => {
   try {
@@ -114,6 +111,7 @@ if (process.env.NODE_ENV === 'development') {
       CREATE TABLE IF NOT EXISTS messages (
         id SERIAL PRIMARY KEY,
         text VARCHAR(255) NOT NULL,
+        worker_id VARCHAR(255),
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       )
     `);
@@ -129,7 +127,7 @@ if (process.env.NODE_ENV === 'development') {
 
 }
 
-// start worker
+// start workers
 worker
 
 server.listen(3000, () => console.log('Server running on http://localhost:3000'));
